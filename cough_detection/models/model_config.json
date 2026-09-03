@@ -1,0 +1,26 @@
+{
+    "sample_rate": 16000,
+    "duration": 1.5,
+    "target_samples": 24000,
+    "n_fft": 1024,
+    "hop_length": 512,
+    "n_mels": 64,
+    "fmin": 50,
+    "fmax": 8000,
+    "norm_mean": -48.29098129272461,
+    "norm_std": 20.998451232910156,
+    "classes": [
+        "non_cough",
+        "cough"
+    ],
+    "class_to_idx": {
+        "non_cough": 0,
+        "cough": 1
+    },
+    "metrics": {
+        "test_accuracy": 92.3076923076923,
+        "precision": 0.9375,
+        "recall": 0.9166666666666667,
+        "f1_score": 0.9212121212121211
+    }
+}
