@@ -223,6 +223,75 @@ body {
   color: #6b7280;
 }
 
+.btn-secondary-cam {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(17, 20, 28, 0.9);
+  border: 1px solid rgba(255, 45, 85, 0.4);
+  color: #f4f5f8;
+  border-radius: 14px;
+  padding: 1.15rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-secondary-cam:hover {
+  background: rgba(255, 45, 85, 0.15);
+  border-color: var(--red-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(255, 45, 85, 0.3);
+}
+
+.landing-webcam-box {
+  width: 100%;
+  max-width: 580px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: 18px;
+  padding: 1.25rem;
+  margin: 1.5rem auto 3rem;
+  box-shadow: 0 0 40px rgba(0,0,0,0.8), 0 0 20px rgba(255, 45, 85, 0.2);
+}
+.landing-webcam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-dim);
+}
+.landing-camera-embed {
+  width: 100%;
+}
+.btn-retry-cam-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 45, 85, 0.2);
+  border: 1px solid var(--red-primary);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-retry-cam-inline:hover {
+  background: var(--red-primary);
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Feature Grid */
 .feature-grid {
   display: grid;
@@ -398,6 +467,39 @@ body {
   box-shadow: 0 0 12px rgba(220, 38, 38, 0.5);
 }
 
+/* Detection Mode Selector */
+.detection-mode-toggle {
+  display: flex;
+  background: #090c12;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.btn-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-mode:hover {
+  color: #fff;
+}
+.btn-mode.active {
+  background: rgba(255, 45, 85, 0.18);
+  color: #ff4d6d;
+  border-color: rgba(255, 45, 85, 0.4);
+}
+
 .permission-error-banner {
   display: flex;
   align-items: center;
@@ -435,6 +537,62 @@ body {
   gap: 1.25rem;
 }
 
+/* Camera Outer Wrapper & Toolbar */
+.camera-outer-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.camera-options-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 10px;
+  padding: 0.35rem 0.65rem;
+}
+
+.btn-cam-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #141923;
+  border: 1px solid #232d3f;
+  color: #94a3b8;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-cam-opt:hover {
+  color: #fff;
+  border-color: #3b4860;
+}
+.btn-cam-opt.active {
+  background: rgba(255, 45, 85, 0.18);
+  border-color: var(--red-primary);
+  color: #ff4d6d;
+}
+.btn-cam-opt.inactive {
+  opacity: 0.5;
+}
+
+.motion-indicator-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #090c12;
+  border: 1px solid #1a202c;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
 /* Camera HUD Frame */
 .camera-hud-frame {
   position: relative;
@@ -458,7 +616,10 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* Mirror view for natural feel */
+  transition: transform 0.2s ease;
+}
+.camera-video-element.mirrored {
+  transform: scaleX(-1);
 }
 
 .camera-fallback-screen {
@@ -705,6 +866,105 @@ body {
   padding: 3px 8px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.speech-filter-badge {
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid #0ea5e9;
+  color: #38bdf8;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  animation: pulse-dot 1.2s infinite;
+}
+.status-dot.speaking {
+  background: #0ea5e9;
+  box-shadow: 0 0 8px #0ea5e9;
+}
+.hud-reticle-box.reticle-convulsion-active {
+  border-color: #f59e0b;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+}
+
+/* Multimodal Sensor Fusion Telemetry Card */
+.multimodal-telemetry-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.telemetry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.fusion-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  background: #0f141d;
+  color: #94a3b8;
+  border: 1px solid #232d3f;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+}
+.fusion-badge.confirmed {
+  background: rgba(255, 45, 85, 0.25);
+  border-color: var(--red-primary);
+  color: #ff4d6d;
+  font-weight: bold;
+  animation: pulse-dot 0.5s infinite;
+}
+.telemetry-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+@media (max-width: 680px) {
+  .telemetry-badges-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.telem-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #090c12;
+  border: 1px solid #1c222e;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+.telem-chip .telem-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #334155;
+}
+.telem-chip.active {
+  border-color: var(--red-primary);
+  color: #fff;
+  background: rgba(255, 45, 85, 0.12);
+}
+.telem-chip.active .telem-dot {
+  background: var(--red-primary);
+  box-shadow: 0 0 6px var(--red-primary);
+}
+.telem-chip.speaking-active {
+  border-color: #0ea5e9;
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.12);
+}
+.telem-chip.speaking-active .telem-dot {
+  background: #0ea5e9;
+  box-shadow: 0 0 6px #0ea5e9;
 }
 
 /* Sensitivity & Manual Controls */

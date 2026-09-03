@@ -1,8 +1,11 @@
-import React from 'react';
-import { Activity, ShieldAlert, Cpu, Mic, Eye, Flame, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, ShieldAlert, Cpu, Mic, Eye, EyeOff, Flame, ArrowRight, Camera } from 'lucide-react';
 import { CHUMA_LEVELS } from '../utils/chumaData';
+import CameraPreview from './CameraPreview';
 
 export default function LandingPage({ onStartTest }) {
+  const [showWebcamPreview, setShowWebcamPreview] = useState(false);
+
   return (
     <div className="landing-container">
       {/* Background glow effects */}
@@ -35,19 +38,57 @@ export default function LandingPage({ onStartTest }) {
           </div>
         </div>
 
-        {/* Primary Action Button */}
+        {/* Primary Action Buttons */}
         <div className="hero-cta-wrapper">
-          <button onClick={onStartTest} className="btn-primary-glow group">
-            <span className="btn-inner">
-              <Activity className="btn-icon animate-pulse" size={24} />
-              <span>START CHUMA TEST</span>
-              <ArrowRight className="btn-arrow" size={20} />
-            </span>
-          </button>
-          <span className="cta-caption font-mono">
-            Requires Browser Microphone & Camera Access • 100% Local Processing
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button onClick={onStartTest} className="btn-primary-glow group">
+              <span className="btn-inner">
+                <Activity className="btn-icon animate-pulse" size={22} />
+                <span>START CHUMA TEST</span>
+                <ArrowRight className="btn-arrow" size={18} />
+              </span>
+            </button>
+
+            <button
+              onClick={() => setShowWebcamPreview(!showWebcamPreview)}
+              className="btn-secondary-cam"
+              title="Test and preview your webcam before starting"
+            >
+              <Camera size={18} className="text-red-400" />
+              <span>{showWebcamPreview ? 'HIDE CAMERA PREVIEW' : 'PREVIEW WEBCAM'}</span>
+            </button>
+          </div>
+
+          <span className="cta-caption font-mono mt-2">
+            Requires Browser Microphone & Camera Access • 100% Local In-Browser Processing
           </span>
         </div>
+
+        {/* Interactive Camera Preview Panel on Landing Page */}
+        {showWebcamPreview && (
+          <div className="landing-webcam-box animate-fadeIn">
+            <div className="landing-webcam-header">
+              <div className="flex items-center gap-2">
+                <span className="live-dot"></span>
+                <span className="font-mono text-xs text-red-400 font-bold">
+                  OPTICAL SENSOR CALIBRATION (LIVE PREVIEW)
+                </span>
+              </div>
+              <button
+                onClick={() => setShowWebcamPreview(false)}
+                className="text-zinc-500 hover:text-zinc-300 font-mono text-xs"
+              >
+                CLOSE ✕
+              </button>
+            </div>
+            <div className="landing-camera-embed">
+              <CameraPreview isCoughing={false} isCameraActive={true} />
+            </div>
+            <div className="text-[11px] text-zinc-500 font-mono mt-2 text-center">
+              Target your face in the reticle. Involuntary head nods and mouth opening will be measured during coughing.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Feature Grid / How It Works */}
@@ -58,7 +99,7 @@ export default function LandingPage({ onStartTest }) {
           </div>
           <h3 className="card-title">Acoustic Transient Detection</h3>
           <p className="card-desc">
-            High-precision Web Audio FFT spectrum analysis isolates sudden diaphragm convulsions in the 250Hz - 2500Hz band.
+            High-precision Web Audio FFT spectrum analysis isolates sudden diaphragm convulsions in the 250Hz - 2500Hz band and filters out normal talking.
           </p>
         </div>
 

@@ -1,6 +1,12 @@
 import React, { useRef, useEffect } from 'react';
 
-export default function AudioVisualizer({ analyserNode, isCoughing, audioLevel = 0, currentThreshold = 20 }) {
+export default function AudioVisualizer({
+  analyserNode,
+  isCoughing,
+  isSpeaking,
+  audioLevel = 0,
+  currentThreshold = 20
+}) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -52,6 +58,11 @@ export default function AudioVisualizer({ analyserNode, isCoughing, audioLevel =
             gradient.addColorStop(0, '#ff2d55');
             gradient.addColorStop(0.5, '#ff3b30');
             gradient.addColorStop(1, '#ffffff');
+          } else if (isSpeaking) {
+            // Cyan/blue gradient when speaking (speech filter active)
+            gradient.addColorStop(0, '#0369a1');
+            gradient.addColorStop(0.6, '#0ea5e9');
+            gradient.addColorStop(1, '#38bdf8');
           } else {
             gradient.addColorStop(0, '#7f1d1d');
             gradient.addColorStop(0.6, '#ef4444');
@@ -59,8 +70,8 @@ export default function AudioVisualizer({ analyserNode, isCoughing, audioLevel =
           }
 
           ctx.fillStyle = gradient;
-          ctx.shadowColor = isCoughing ? '#ff2d55' : 'rgba(239, 68, 68, 0.4)';
-          ctx.shadowBlur = isCoughing ? 12 : 4;
+          ctx.shadowColor = isCoughing ? '#ff2d55' : (isSpeaking ? '#0ea5e9' : 'rgba(239, 68, 68, 0.3)');
+          ctx.shadowBlur = isCoughing ? 12 : (isSpeaking ? 6 : 3);
 
           ctx.fillRect(x, height - barHeight, barWidth, barHeight);
           x += barWidth + 3;
@@ -88,7 +99,7 @@ export default function AudioVisualizer({ analyserNode, isCoughing, audioLevel =
     return () => {
       if (animationId) cancelAnimationFrame(animationId);
     };
-  }, [analyserNode, isCoughing]);
+  }, [analyserNode, isCoughing, isSpeaking]);
 
   const isAboveThreshold = audioLevel >= currentThreshold;
 
@@ -96,16 +107,19 @@ export default function AudioVisualizer({ analyserNode, isCoughing, audioLevel =
     <div className="audio-visualizer-container">
       <div className="visualizer-header">
         <div className="flex items-center gap-2">
-          <span className={`status-dot ${isCoughing ? 'coughing' : 'active'}`}></span>
+          <span className={`status-dot ${isCoughing ? 'coughing' : (isSpeaking ? 'speaking' : 'active')}`}></span>
           <span className="visualizer-title">QUANTUM ACOUSTIC SPECTRUM</span>
         </div>
         <div className="visualizer-stats">
-          <span className="stat-label">MIC INPUT:</span>
+          {isSpeaking && (
+            <span className="speech-filter-badge">🗣️ SPEECH FILTER: TALKING</span>
+          )}
+          <span className="stat-label">INPUT:</span>
           <span className={`stat-val ${isAboveThreshold ? 'text-red-400 font-bold' : ''}`}>
             {audioLevel}%
           </span>
           {isCoughing && (
-            <span className="cough-tag-alert">COUGH DETECTED!</span>
+            <span className="cough-tag-alert">BURST TRIGGERED</span>
           )}
         </div>
       </div>
@@ -113,19 +127,17 @@ export default function AudioVisualizer({ analyserNode, isCoughing, audioLevel =
       <canvas
         ref={canvasRef}
         width={420}
-        height={78}
+        height={76}
         className={`visualizer-canvas ${isCoughing ? 'cough-canvas-flash' : ''}`}
       />
 
       {/* Real-time Level vs Threshold Indicator Bar */}
       <div className="audio-meter-wrap">
         <div className="audio-meter-track">
-          {/* Level Fill Bar */}
           <div
             className={`audio-meter-fill ${isAboveThreshold ? 'meter-above-thresh' : ''}`}
             style={{ width: `${Math.min(100, audioLevel)}%` }}
           />
-          {/* Threshold Marker Pin */}
           <div
             className="audio-meter-threshold-pin"
             style={{ left: `${currentThreshold}%` }}
