@@ -1,16 +1,16 @@
 """
-app.py — Testing & Recognition Program for Cough Sound Recognition
+app.py — ChummAPP: Bio-Acoustic Cough Recognition & Savage Roast System
 
 Features:
-- Native, responsive Tkinter Desktop GUI (Zero external server dependencies).
-- Loads trained model (models/cough_model.pth) & configuration (models/model_config.json).
-- Continuous real-time microphone stream with rolling 1.5s audio window.
-- Audio file upload and instant playback testing (.wav, .mp3, .ogg, .flac).
-- Visual confidence progress bar (0% - 100%) with dynamic color shifting.
-- Distinct prediction badges: "COUGH DETECTED" vs "NO COUGH DETECTED".
-- Intelligent debounce/cooldown mechanism to prevent repeated triggers from a single cough.
-- Recent detections log table with timestamps and confidence scores.
-- Clear medical diagnostic disclaimer.
+- Full Cyberpunk Biometric HUD Interface matching user specifications.
+- Deep Learning Powered: Loads trained PyTorch model (models/cough_model.pth).
+- Acoustic Spike Telemetry & Dynamic Counter: Real-time cough detection with bump animation.
+- Tiered Chuma Ranks (Healthy Amateur -> Chuma Final Boss / അന്തിമ ചുമ ദൈവം).
+- Live Biometric Roast Stream in Malayalam with English Subtitles.
+- Real-Time Acoustic Spectrum Visualizer & Microphone Sensitivity Controls.
+- Cosmetic Facial HUD with Target Larynx Zone Box.
+- Official Closing Chuma Dossier Modal ("Verified Futile", Total Coughs, Level, Closing Roast).
+- Automatically opens browser to http://127.0.0.1:5000 on launch.
 """
 
 import os
@@ -24,21 +24,18 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 import sys
 import json
 import time
-import queue
+import argparse
 import threading
-from datetime import datetime
+import webbrowser
 from typing import Optional, Tuple
 
 import numpy as np
 import soundfile as sf
 import librosa
-import sounddevice as sd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from flask import Flask, request, jsonify, send_from_directory
 
 
 # -----------------------------------------------------------------------------
@@ -145,10 +142,18 @@ class AudioInferenceEngine:
             self.is_loaded = False
             return False
 
-    def preprocess_chunk(self, audio: np.ndarray) -> torch.Tensor:
+    def preprocess_chunk(self, audio: np.ndarray, orig_sr: int = 16000) -> torch.Tensor:
         """Standardizes audio length and computes normalized Log-Mel Spectrogram."""
         audio = audio.astype(np.float32)
-        # Peak normalization
+
+        # Resample if browser sample rate differs from 16 kHz
+        if orig_sr != self.sample_rate and len(audio) > 0:
+            try:
+                audio = librosa.resample(audio, orig_sr=orig_sr, target_sr=self.sample_rate)
+            except Exception:
+                pass
+
+        # DC removal & Peak normalization
         audio = audio - np.mean(audio)
         max_val = np.max(np.abs(audio))
         if max_val > 1e-5:
@@ -182,17 +187,17 @@ class AudioInferenceEngine:
         tensor = torch.tensor(norm_mel, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
         return tensor
 
-    def predict_chunk(self, audio: np.ndarray) -> Tuple[str, float]:
-        """Runs inference on a single audio chunk. Returns (label, cough_probability)."""
+    def predict_chunk(self, audio: np.ndarray, orig_sr: int = 16000) -> Tuple[str, float]:
+        """Runs inference on an audio chunk. Returns (label, cough_probability)."""
         if not self.is_loaded or self.model is None:
             return "NO COUGH DETECTED", 0.0
 
-        # Silence / low energy filter to avoid predicting noise floor
+        # Silence check
         rms = np.sqrt(np.mean(audio ** 2))
         if rms < 0.003:
             return "NO COUGH DETECTED", 0.0
 
-        tensor = self.preprocess_chunk(audio)
+        tensor = self.preprocess_chunk(audio, orig_sr=orig_sr)
         with torch.no_grad():
             logits = self.model(tensor)
             probs = F.softmax(logits, dim=1).squeeze().numpy()
@@ -202,10 +207,7 @@ class AudioInferenceEngine:
         return label, p_cough
 
     def predict_file(self, file_path: str) -> Tuple[str, float, float, np.ndarray]:
-        """
-        Runs sliding-window prediction over an entire audio file.
-        Returns: (overall_label, max_cough_prob, file_duration, raw_audio)
-        """
+        """Sliding-window evaluation over audio file."""
         try:
             audio, sr = sf.read(file_path, dtype="float32")
         except Exception:
@@ -218,19 +220,17 @@ class AudioInferenceEngine:
             audio = librosa.resample(audio, orig_sr=sr, target_sr=self.sample_rate)
 
         file_duration = len(audio) / self.sample_rate
-
-        # Sliding window over the audio
         window_size = self.target_samples
-        hop_size = int(self.sample_rate * 0.5)  # 0.5s stride
+        hop_size = int(self.sample_rate * 0.5)
 
         if len(audio) <= window_size:
-            label, prob = self.predict_chunk(audio)
+            label, prob = self.predict_chunk(audio, orig_sr=self.sample_rate)
             return label, prob, file_duration, audio
 
         max_prob = 0.0
         for start in range(0, len(audio) - window_size + 1, hop_size):
             chunk = audio[start : start + window_size]
-            _, prob = self.predict_chunk(chunk)
+            _, prob = self.predict_chunk(chunk, orig_sr=self.sample_rate)
             if prob > max_prob:
                 max_prob = prob
 
@@ -239,660 +239,82 @@ class AudioInferenceEngine:
 
 
 # -----------------------------------------------------------------------------
-# Main GUI Application (Tkinter)
+# Flask Server & API Handlers
 # -----------------------------------------------------------------------------
-class CoughDetectorApp:
-    def __init__(self, root: tk.Tk):
-        self.root = root
-        self.root.title("Cough Sound Recognition System")
-        self.root.geometry("820x720")
-        self.root.minsize(760, 680)
-        self.root.configure(bg="#181825")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+MODELS_DIR = os.path.join(BASE_DIR, "models")
 
-        # Base directories
-        self.base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.models_dir = os.path.join(self.base_dir, "models")
+engine = AudioInferenceEngine(models_dir=MODELS_DIR)
 
-        # Engine initialization
-        self.engine = AudioInferenceEngine(models_dir=self.models_dir)
+flask_app = Flask(__name__, static_folder=STATIC_DIR)
 
-        # State variables
-        self.is_recording = False
-        self.audio_stream = None
-        self.msg_queue = queue.Queue()
-        self.ring_buffer = np.zeros(self.engine.target_samples, dtype=np.float32)
-        self.last_detection_time = 0.0
-        self.cooldown_seconds = 1.5  # Debounce cooldown
-        self.uploaded_audio = None
-        self.is_playing_audio = False
-        self.selected_device_idx = None
-        self.input_device_map = {}
 
-        self._init_styles()
-        self._build_ui()
-        self._refresh_audio_devices()
+@flask_app.route("/")
+def index():
+    return send_from_directory(STATIC_DIR, "index.html")
 
-        # Check model status
-        if not self.engine.is_loaded:
-            self._show_model_missing_banner()
 
-        # Start periodic queue checking for thread-safe UI updates
-        self.root.after(50, self._process_queue)
+@flask_app.route("/static/<path:filename>")
+def serve_static(filename):
+    return send_from_directory(STATIC_DIR, filename)
 
-    def _init_styles(self):
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("Treeview",
-            background="#1e1e2e",
-            foreground="#cdd6f4",
-            fieldbackground="#1e1e2e",
-            rowheight=26,
-            font=("Segoe UI", 9)
-        )
-        style.configure("Treeview.Heading",
-            background="#313244",
-            foreground="#cdd6f4",
-            font=("Segoe UI", 9, "bold")
-        )
-        style.map("Treeview", background=[("selected", "#45475a")])
 
-    def _build_ui(self):
-        # 1. Header Banner
-        header = tk.Frame(self.root, bg="#11111b", padx=20, pady=12)
-        header.pack(fill="x", side="top")
+@flask_app.route("/api/status", methods=["GET"])
+def api_status():
+    return jsonify({
+        "model_loaded": engine.is_loaded,
+        "sample_rate": engine.sample_rate,
+        "classes": engine.classes,
+        "metrics": engine.config.get("metrics", {})
+    })
 
-        title_label = tk.Label(
-            header,
-            text="COUGH SOUND RECOGNITION SYSTEM",
-            font=("Segoe UI", 16, "bold"),
-            fg="#cdd6f4",
-            bg="#11111b"
-        )
-        title_label.pack(anchor="w")
 
-        disclaimer_label = tk.Label(
-            header,
-            text="Acoustic pattern recognition research tool. Not a medical diagnostic device.",
-            font=("Segoe UI", 8, "italic"),
-            fg="#f38ba8",
-            bg="#11111b"
-        )
-        disclaimer_label.pack(anchor="w")
+@flask_app.route("/api/predict", methods=["POST"])
+def api_predict():
+    data = request.get_json(silent=True)
+    if not data or "audio" not in data:
+        return jsonify({"error": "No audio payload provided"}), 400
 
-        # Model Status Badge in Header
-        model_status_text = "MODEL LOADED" if self.engine.is_loaded else "MODEL NOT FOUND (RUN train.py)"
-        model_status_color = "#a6e3a1" if self.engine.is_loaded else "#fab387"
-        self.model_badge = tk.Label(
-            header,
-            text=f"• {model_status_text}",
-            font=("Segoe UI", 9, "bold"),
-            fg=model_status_color,
-            bg="#11111b"
-        )
-        self.model_badge.place(relx=1.0, rely=0.5, anchor="e", x=-20)
+    try:
+        raw_samples = np.array(data["audio"], dtype=np.float32)
+        orig_sr = int(data.get("sr", 16000))
+        label, prob = engine.predict_chunk(raw_samples, orig_sr=orig_sr)
 
-        # 2. Main Content Container
-        content = tk.Frame(self.root, bg="#181825", padx=20, pady=15)
-        content.pack(fill="both", expand=True)
+        is_cough = (prob >= 0.50)
+        return jsonify({
+            "is_cough": bool(is_cough),
+            "label": label,
+            "probability": float(prob),
+            "confidence_percent": round(prob * 100, 1)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-        # 2A. Primary Live Prediction Display Card
-        pred_card = tk.Frame(content, bg="#1e1e2e", bd=0, relief="flat", padx=16, pady=16)
-        pred_card.pack(fill="x", pady=(0, 15))
 
-        self.badge_label = tk.Label(
-            pred_card,
-            text="READY FOR AUDIO TEST",
-            font=("Segoe UI", 20, "bold"),
-            fg="#a6adc8",
-            bg="#313244",
-            padx=16,
-            pady=8
-        )
-        self.badge_label.pack(pady=(4, 10))
+def open_browser(port: int):
+    time.sleep(1.0)
+    webbrowser.open(f"http://127.0.0.1:{port}")
 
-        # Confidence Score & Status Info
-        self.prob_label = tk.Label(
-            pred_card,
-            text="Cough Probability: 0.0%",
-            font=("Segoe UI", 13, "bold"),
-            fg="#cdd6f4",
-            bg="#1e1e2e"
-        )
-        self.prob_label.pack()
 
-        # Canvas Confidence Meter Bar
-        meter_frame = tk.Frame(pred_card, bg="#1e1e2e", pady=8)
-        meter_frame.pack(fill="x", padx=30)
-
-        self.meter_canvas = tk.Canvas(meter_frame, height=22, bg="#313244", bd=0, highlightthickness=0)
-        self.meter_canvas.pack(fill="x", expand=True)
-        self._update_confidence_meter(0.0)
-
-        # Debounce / Cooldown Indicator
-        self.debounce_info = tk.Label(
-            pred_card,
-            text="Debounce Cooldown: 1.5s active",
-            font=("Segoe UI", 8),
-            fg="#6c7086",
-            bg="#1e1e2e"
-        )
-        self.debounce_info.pack()
-
-        # 2B. Control Panels: Two Columns (Microphone vs File Upload)
-        controls_frame = tk.Frame(content, bg="#181825")
-        controls_frame.pack(fill="x", pady=(0, 15))
-
-        # Column 1: Microphone Controls
-        mic_card = tk.LabelFrame(
-            controls_frame,
-            text=" Live Microphone Test (Continuous) ",
-            font=("Segoe UI", 10, "bold"),
-            fg="#cdd6f4",
-            bg="#1e1e2e",
-            padx=14,
-            pady=12,
-            relief="flat"
-        )
-        mic_card.pack(side="left", fill="both", expand=True, padx=(0, 8))
-
-        mic_desc = tk.Label(
-            mic_card,
-            text="Streams audio continuously in 1.5s windows with debounce.",
-            font=("Segoe UI", 8),
-            fg="#a6adc8",
-            bg="#1e1e2e",
-            wraplength=300,
-            justify="left"
-        )
-        mic_desc.pack(anchor="w", pady=(0, 8))
-
-        # Input device dropdown row
-        dev_row = tk.Frame(mic_card, bg="#1e1e2e")
-        dev_row.pack(fill="x", pady=(0, 10))
-
-        tk.Label(dev_row, text="Mic:", font=("Segoe UI", 9, "bold"), fg="#cdd6f4", bg="#1e1e2e").pack(side="left", padx=(0, 4))
-        self.device_var = tk.StringVar()
-        self.device_combo = ttk.Combobox(dev_row, textvariable=self.device_var, state="readonly", width=22)
-        self.device_combo.pack(side="left", fill="x", expand=True, padx=(0, 4))
-        self.device_combo.bind("<<ComboboxSelected>>", self._on_device_selected)
-
-        btn_refresh_dev = tk.Button(
-            dev_row,
-            text="🔄",
-            font=("Segoe UI", 8, "bold"),
-            bg="#313244",
-            fg="#cdd6f4",
-            activebackground="#45475a",
-            relief="flat",
-            padx=5,
-            pady=1,
-            cursor="hand2",
-            command=self._refresh_audio_devices
-        )
-        btn_refresh_dev.pack(side="right")
-
-        mic_btn_frame = tk.Frame(mic_card, bg="#1e1e2e")
-        mic_btn_frame.pack(fill="x")
-
-        self.btn_start_mic = tk.Button(
-            mic_btn_frame,
-            text="▶ Start Microphone Test",
-            font=("Segoe UI", 10, "bold"),
-            bg="#89b4fa",
-            fg="#11111b",
-            activebackground="#b4befe",
-            cursor="hand2",
-            relief="flat",
-            padx=10,
-            pady=6,
-            command=self.start_microphone
-        )
-        self.btn_start_mic.pack(side="left", padx=(0, 6))
-
-        self.btn_stop_mic = tk.Button(
-            mic_btn_frame,
-            text="⏹ Stop",
-            font=("Segoe UI", 10, "bold"),
-            bg="#f38ba8",
-            fg="#11111b",
-            activebackground="#eba0ac",
-            cursor="hand2",
-            relief="flat",
-            state="disabled",
-            padx=10,
-            pady=6,
-            command=self.stop_microphone
-        )
-        self.btn_stop_mic.pack(side="left")
-
-        # Column 2: File Upload Controls
-        file_card = tk.LabelFrame(
-            controls_frame,
-            text=" Audio File Test & Playback ",
-            font=("Segoe UI", 10, "bold"),
-            fg="#cdd6f4",
-            bg="#1e1e2e",
-            padx=14,
-            pady=12,
-            relief="flat"
-        )
-        file_card.pack(side="right", fill="both", expand=True, padx=(8, 0))
-
-        self.lbl_file_name = tk.Label(
-            file_card,
-            text="No audio file loaded (.wav, .mp3, .ogg, .flac)",
-            font=("Segoe UI", 8),
-            fg="#a6adc8",
-            bg="#1e1e2e",
-            wraplength=300,
-            justify="left"
-        )
-        self.lbl_file_name.pack(anchor="w", pady=(0, 10))
-
-        file_btn_frame = tk.Frame(file_card, bg="#1e1e2e")
-        file_btn_frame.pack(fill="x")
-
-        self.btn_upload = tk.Button(
-            file_btn_frame,
-            text="📁 Upload Audio File",
-            font=("Segoe UI", 10, "bold"),
-            bg="#a6e3a1",
-            fg="#11111b",
-            activebackground="#94e2d5",
-            cursor="hand2",
-            relief="flat",
-            padx=10,
-            pady=6,
-            command=self.upload_audio_file
-        )
-        self.btn_upload.pack(side="left", padx=(0, 6))
-
-        self.btn_play = tk.Button(
-            file_btn_frame,
-            text="🔊 Play Audio",
-            font=("Segoe UI", 10, "bold"),
-            bg="#cba6f7",
-            fg="#11111b",
-            activebackground="#f5c2e7",
-            cursor="hand2",
-            relief="flat",
-            state="disabled",
-            padx=10,
-            pady=6,
-            command=self.toggle_audio_playback
-        )
-        self.btn_play.pack(side="left")
-
-        # 2C. Recent Detections Log Section
-        log_card = tk.LabelFrame(
-            content,
-            text=" Recent Detections Log ",
-            font=("Segoe UI", 10, "bold"),
-            fg="#cdd6f4",
-            bg="#1e1e2e",
-            padx=12,
-            pady=10,
-            relief="flat"
-        )
-        log_card.pack(fill="both", expand=True)
-
-        columns = ("time", "source", "prediction", "probability", "status")
-        self.tree = ttk.Treeview(log_card, columns=columns, show="headings", height=6)
-        self.tree.heading("time", text="Timestamp")
-        self.tree.heading("source", text="Source")
-        self.tree.heading("prediction", text="Prediction")
-        self.tree.heading("probability", text="Cough Prob.")
-        self.tree.heading("status", text="Notes")
-
-        self.tree.column("time", width=95, anchor="center")
-        self.tree.column("source", width=110, anchor="center")
-        self.tree.column("prediction", width=160, anchor="center")
-        self.tree.column("probability", width=110, anchor="center")
-        self.tree.column("status", width=220, anchor="w")
-
-        scrollbar = ttk.Scrollbar(log_card, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        self.tree.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # 3. Status Bar at Bottom
-        status_bar = tk.Frame(self.root, bg="#11111b", padx=16, pady=4)
-        status_bar.pack(fill="x", side="bottom")
-
-        self.status_msg = tk.Label(
-            status_bar,
-            text="System Ready.",
-            font=("Segoe UI", 8),
-            fg="#6c7086",
-            bg="#11111b"
-        )
-        self.status_msg.pack(side="left")
-
-        btn_open_trainer = tk.Button(
-            status_bar,
-            text="🎙️ Record & Train Tool",
-            font=("Segoe UI", 8, "bold"),
-            bg="#313244",
-            fg="#cdd6f4",
-            activebackground="#45475a",
-            relief="flat",
-            padx=8,
-            pady=2,
-            cursor="hand2",
-            command=self._launch_record_and_train
-        )
-        btn_open_trainer.pack(side="right", padx=(5, 0))
-
-        btn_reload_model = tk.Button(
-            status_bar,
-            text="🔄 Reload Model",
-            font=("Segoe UI", 8),
-            bg="#313244",
-            fg="#a6adc8",
-            activebackground="#45475a",
-            relief="flat",
-            padx=6,
-            pady=2,
-            cursor="hand2",
-            command=self._reload_model
-        )
-        btn_reload_model.pack(side="right")
-
-    def _launch_record_and_train(self):
-        script_path = os.path.join(self.base_dir, "record_and_train.py")
-        if not os.path.exists(script_path):
-            messagebox.showerror("Error", "record_and_train.py not found.")
-            return
-        import subprocess
-        subprocess.Popen([sys.executable, script_path], cwd=self.base_dir)
-
-    def _reload_model(self):
-        loaded = self.engine.load_model()
-        if loaded:
-            self.model_badge.config(text="• MODEL LOADED", fg="#a6e3a1")
-            self.status_msg.config(text="Model reloaded successfully.")
-            messagebox.showinfo("Model Reloaded", "Latest model weights and config loaded successfully!")
-        else:
-            self.model_badge.config(text="• MODEL NOT FOUND", fg="#fab387")
-            messagebox.showwarning("Warning", "Could not reload model. Ensure train.py has run.")
-
-    def _show_model_missing_banner(self):
-        messagebox.showwarning(
-            "Model Not Found",
-            "Trained model files ('cough_model.pth' / 'model_config.json') were not found in 'models/'.\n\n"
-            "Please run 'train.py' first to train and save the model."
-        )
-
-    def _update_confidence_meter(self, prob: float):
-        self.meter_canvas.delete("all")
-        width = self.meter_canvas.winfo_width()
-        if width <= 1:
-            width = 680  # Default estimate before first render
-
-        fill_width = max(0, min(width, int(width * prob)))
-
-        # Dynamic color transitions: Emerald -> Amber -> Red
-        if prob < 0.35:
-            color = "#a6e3a1"  # Soft green
-        elif prob < 0.65:
-            color = "#f9e2af"  # Amber/yellow
-        else:
-            color = "#f38ba8"  # Crimson red
-
-        self.meter_canvas.create_rectangle(0, 0, fill_width, 22, fill=color, outline="")
-
-    def _update_display(self, label: str, prob: float, note: str = ""):
-        pct = prob * 100.0
-        self.prob_label.config(text=f"Cough Probability: {pct:.1f}%")
-        self._update_confidence_meter(prob)
-
-        if label == "COUGH DETECTED":
-            self.badge_label.config(
-                text="⚠ COUGH DETECTED",
-                fg="#ffffff",
-                bg="#f38ba8"  # High-visibility crimson
-            )
-        else:
-            self.badge_label.config(
-                text="✔ NO COUGH DETECTED",
-                fg="#11111b",
-                bg="#a6e3a1"  # Soft emerald green
-            )
-
-        if note:
-            self.debounce_info.config(text=note)
-        else:
-            self.debounce_info.config(text="Debounce Cooldown: 1.5s active")
-
-    def _log_detection(self, source: str, label: str, prob: float, note: str = ""):
-        now_str = datetime.now().strftime("%H:%M:%S")
-        prob_str = f"{prob * 100:.1f}%"
-        item_id = self.tree.insert("", 0, values=(now_str, source, label, prob_str, note))
-        # Keep only last 50 entries
-        children = self.tree.get_children()
-        if len(children) > 50:
-            for old in children[50:]:
-                self.tree.delete(old)
-
-    def _refresh_audio_devices(self):
-        try:
-            devices = sd.query_devices()
-            hostapis = sd.query_hostapis()
-            self.input_device_map = {}
-            display_list = ["Default System Device"]
-            self.input_device_map["Default System Device"] = None
-
-            for idx, dev in enumerate(devices):
-                if dev.get("max_input_channels", 0) > 0:
-                    api_idx = dev.get("hostapi", 0)
-                    api_name = hostapis[api_idx]["name"] if api_idx < len(hostapis) else ""
-                    name = f"[{idx}] {dev['name']} ({api_name})"
-                    display_list.append(name)
-                    self.input_device_map[name] = idx
-
-            self.device_combo["values"] = display_list
-            if display_list:
-                self.device_combo.current(0)
-                self.selected_device_idx = None
-        except Exception:
-            self.device_combo["values"] = ["Default System Device"]
-            self.device_combo.current(0)
-            self.selected_device_idx = None
-
-    def _on_device_selected(self, event=None):
-        selected_text = self.device_var.get()
-        self.selected_device_idx = self.input_device_map.get(selected_text, None)
-        dev_desc = selected_text if self.selected_device_idx is not None else "Default System Device"
-        self.status_msg.config(text=f"Selected microphone: {dev_desc}")
-
-    # -------------------------------------------------------------------------
-    # Microphone Streaming & Background Worker
-    # -------------------------------------------------------------------------
-    def start_microphone(self):
-        if not self.engine.is_loaded:
-            messagebox.showerror("Error", "Model is not loaded. Train a model first via 'train.py'.")
-            return
-
-        if self.is_recording:
-            return
-
-        try:
-            self.is_recording = True
-            self.btn_start_mic.config(state="disabled", bg="#45475a")
-            self.btn_stop_mic.config(state="normal", bg="#f38ba8")
-            self.status_msg.config(text="Live microphone stream active...")
-
-            # Clear ring buffer
-            self.ring_buffer = np.zeros(self.engine.target_samples, dtype=np.float32)
-
-            # Start background processing thread
-            self.audio_thread = threading.Thread(target=self._microphone_worker, daemon=True)
-            self.audio_thread.start()
-
-        except Exception as e:
-            self.is_recording = False
-            self.btn_start_mic.config(state="normal", bg="#89b4fa")
-            self.btn_stop_mic.config(state="disabled")
-            messagebox.showerror("Microphone Error", f"Could not start microphone stream:\n{e}")
-
-    def stop_microphone(self):
-        self.is_recording = False
-        if self.audio_stream is not None:
-            try:
-                self.audio_stream.stop()
-                self.audio_stream.close()
-            except Exception:
-                pass
-            self.audio_stream = None
-
-        self.btn_start_mic.config(state="normal", bg="#89b4fa")
-        self.btn_stop_mic.config(state="disabled")
-        self.status_msg.config(text="Microphone stopped.")
-
-    def _microphone_worker(self):
-        """
-        Background audio worker: records small frames (e.g. 0.25s), updates rolling
-        1.5s buffer, and runs inference every 0.4 seconds.
-        """
-        sr = self.engine.sample_rate
-        frame_duration = 0.25  # seconds
-        frame_samples = int(sr * frame_duration)
-
-        eval_interval = 0.4  # Run model inference every 400 ms
-        last_eval_time = 0.0
-
-        try:
-            with sd.InputStream(samplerate=sr, channels=1, dtype="float32", blocksize=frame_samples, device=self.selected_device_idx) as stream:
-                self.audio_stream = stream
-                while self.is_recording:
-                    data, overflowed = stream.read(frame_samples)
-                    if not self.is_recording:
-                        break
-
-                    chunk = data.flatten()
-                    # Slide ring buffer
-                    self.ring_buffer = np.roll(self.ring_buffer, -frame_samples)
-                    self.ring_buffer[-frame_samples:] = chunk
-
-                    now = time.time()
-                    if now - last_eval_time >= eval_interval:
-                        last_eval_time = now
-                        label, prob = self.engine.predict_chunk(self.ring_buffer)
-
-                        # Check debounce cooldown
-                        is_cough = (prob >= 0.50)
-                        in_cooldown = (now - self.last_detection_time < self.cooldown_seconds)
-
-                        if is_cough and not in_cooldown:
-                            self.last_detection_time = now
-                            self.msg_queue.put(("detection", (label, prob, "Cough Event Triggered", True)))
-                        elif is_cough and in_cooldown:
-                            # Still in cooldown window
-                            remaining = self.cooldown_seconds - (now - self.last_detection_time)
-                            self.msg_queue.put(("detection", (label, prob, f"Cooldown ({remaining:.1f}s)", False)))
-                        else:
-                            self.msg_queue.put(("detection", (label, prob, "", False)))
-
-        except Exception as e:
-            self.msg_queue.put(("error", str(e)))
-
-    # -------------------------------------------------------------------------
-    # Audio File Upload & Playback
-    # -------------------------------------------------------------------------
-    def upload_audio_file(self):
-        if not self.engine.is_loaded:
-            messagebox.showerror("Error", "Model is not loaded. Train a model first via 'train.py'.")
-            return
-
-        file_types = [
-            ("Audio Files", "*.wav *.mp3 *.ogg *.flac *.m4a *.aac"),
-            ("WAV Files", "*.wav"),
-            ("MP3 Files", "*.mp3"),
-            ("All Files", "*.*")
-        ]
-        file_path = filedialog.askopenfilename(title="Select Audio File", filetypes=file_types)
-        if not file_path:
-            return
-
-        try:
-            filename = os.path.basename(file_path)
-            self.lbl_file_name.config(text=f"Loaded: {filename}")
-            self.status_msg.config(text=f"Analyzing {filename}...")
-
-            # Run prediction on file
-            label, max_prob, duration, audio = self.engine.predict_file(file_path)
-            self.uploaded_audio = audio
-            self.uploaded_sr = self.engine.sample_rate
-
-            self.btn_play.config(state="normal")
-            self._update_display(label, max_prob, f"File: {filename} ({duration:.1f}s)")
-            self._log_detection(f"File: {filename}", label, max_prob, f"Duration: {duration:.1f}s")
-            self.status_msg.config(text=f"Completed analysis of {filename}.")
-
-        except Exception as e:
-            messagebox.showerror("File Error", f"Failed to process audio file:\n{e}")
-
-    def toggle_audio_playback(self):
-        if self.uploaded_audio is None:
-            return
-
-        if self.is_playing_audio:
-            # Stop playback
-            sd.stop()
-            self.is_playing_audio = False
-            self.btn_play.config(text="🔊 Play Audio", bg="#cba6f7")
-            self.status_msg.config(text="Playback stopped.")
-        else:
-            # Start playback
-            try:
-                sd.play(self.uploaded_audio, self.uploaded_sr)
-                self.is_playing_audio = True
-                self.btn_play.config(text="⏹ Stop Playback", bg="#f38ba8")
-                self.status_msg.config(text="Playing audio file...")
-
-                def check_done():
-                    if self.is_playing_audio:
-                        # Check if sounddevice is still active
-                        status = sd.get_stream()
-                        if status and status.active:
-                            self.root.after(100, check_done)
-                        else:
-                            self.is_playing_audio = False
-                            self.btn_play.config(text="🔊 Play Audio", bg="#cba6f7")
-                            self.status_msg.config(text="Playback finished.")
-
-                self.root.after(100, check_done)
-            except Exception as e:
-                messagebox.showerror("Playback Error", f"Could not play audio:\n{e}")
-
-    # -------------------------------------------------------------------------
-    # Thread-Safe Queue Consumer
-    # -------------------------------------------------------------------------
-    def _process_queue(self):
-        try:
-            while not self.msg_queue.empty():
-                msg_type, data = self.msg_queue.get_nowait()
-                if msg_type == "detection":
-                    label, prob, note, trigger_log = data
-                    self._update_display(label, prob, note)
-                    if trigger_log:
-                        self._log_detection("Microphone", label, prob, note)
-                elif msg_type == "error":
-                    self.stop_microphone()
-                    messagebox.showerror("Microphone Stream Error", f"Stream error encountered:\n{data}")
-        except Exception:
-            pass
-        finally:
-            self.root.after(50, self._process_queue)
-
-
-# -----------------------------------------------------------------------------
-# Main Application Entry Point
-# -----------------------------------------------------------------------------
 def main():
-    root = tk.Tk()
-    app = CoughDetectorApp(root)
-    root.mainloop()
+    parser = argparse.ArgumentParser(description="ChummAPP: Bio-Acoustic Cough Recognition & Savage Roast System")
+    parser.add_argument("--port", type=int, default=5000, help="Port to run web server on (default: 5000)")
+    parser.add_argument("--no_browser", action="store_true", help="Do not automatically open the web browser")
+    args = parser.parse_args()
+
+    print("=" * 70)
+    print("      CHUMMAPP — BIO-ACOUSTIC DOSSIER & SAVAGE ROAST ENGINE")
+    print("=" * 70)
+    print(f"Model Loaded: {'YES (CoughCNN Ready)' if engine.is_loaded else 'NO (Run train.py first)'}")
+    print(f"Server starting on: http://127.0.0.1:{args.port}")
+    print("Press Ctrl+C to stop the server.")
+    print("=" * 70)
+
+    if not args.no_browser:
+        threading.Thread(target=open_browser, args=(args.port,), daemon=True).start()
+
+    flask_app.run(host="0.0.0.0", port=args.port, debug=False)
 
 
 if __name__ == "__main__":

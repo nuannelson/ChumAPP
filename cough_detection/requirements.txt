@@ -8,3 +8,4 @@ sounddevice>=0.4.6
 scikit-learn>=1.3.0
 matplotlib>=3.7.0
 pillow>=10.0.0
+flask>=3.0.0

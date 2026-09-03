@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChummAPP — Official Chuma Recognition & Biometric Roast System</title>
+  <!-- Google Fonts: Space Grotesk, Inter, JetBrains Mono, Noto Sans Malayalam -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+Malayalam:wght@400;600;700;800;900&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navbar -->
+    <header class="top-bar">
+      <div class="brand">
+        <span class="pulse-dot red"></span>
+        <span class="brand-title">Chumm<span class="brand-accent">APP</span></span>
+      </div>
+
+      <div class="top-controls">
+        <div class="rec-timer-badge">
+          <span class="timer-dot"></span>
+          <span id="sessionTimer">REC 00:00</span>
+        </div>
+
+        <div class="mic-sensitivity-wrapper">
+          <label for="micSensitivity">MIC SENSITIVITY:</label>
+          <input type="range" id="micSensitivity" min="0.05" max="0.80" step="0.01" value="0.25">
+          <span id="sensitivityVal">0.25</span>
+        </div>
+
+        <button id="btnToggleSession" class="btn-danger-glow">
+          <span class="btn-icon">⏹</span> <span id="btnSessionText">STOP TEST</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Live Monitoring Layout (2-column Grid) -->
+    <main class="grid-layout">
+      <!-- Left Column: Camera HUD + Spectrum Analyzer -->
+      <section class="col-left">
+        <!-- Cosmetic Facial HUD Card -->
+        <div class="hud-card">
+          <div class="card-header">
+            <div class="hud-status">
+              <span class="pulse-dot red"></span>
+              <span class="hud-title">COSMETIC FACIAL HUD [ONLINE]</span>
+            </div>
+            <div class="hud-fps" id="fpsDisplay">FPS: 60.0</div>
+          </div>
+
+          <div class="video-container">
+            <!-- Real Webcam Video Element -->
+            <video id="webcamVideo" autoplay playsinline muted></video>
+            <!-- Fallback Holographic Canvas if Camera Denied -->
+            <canvas id="holoCanvas"></canvas>
+
+            <!-- Sci-Fi HUD Overlay Targeting Box -->
+            <div class="target-box" id="targetBox">
+              <div class="corner top-left"></div>
+              <div class="corner top-right"></div>
+              <div class="corner bottom-left"></div>
+              <div class="corner bottom-right"></div>
+              <div class="target-crosshair">+</div>
+              <div class="target-label">TARGET: LARYNX ZONE</div>
+            </div>
+
+            <!-- Bottom HUD labels -->
+            <div class="hud-bottom-bar">
+              <span class="hud-tag">ZERO COMPUTER VISION ACTIVE</span>
+              <span class="hud-tag highlight">103% FOR SHOW</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time Acoustic Spectrum Card -->
+        <div class="spectrum-card">
+          <div class="card-header">
+            <div class="spectrum-status">
+              <span class="pulse-dot cyan"></span>
+              <span class="spectrum-title">REAL-TIME ACOUSTIC SPECTRUM</span>
+            </div>
+            <div class="spectrum-scan">SCANNING FREQUENCIES</div>
+          </div>
+
+          <div class="spectrum-body">
+            <canvas id="spectrumCanvas" width="600" height="110"></canvas>
+            <div class="rms-meter-row">
+              <span class="rms-label">VOL RMS:</span>
+              <div class="rms-track">
+                <div class="rms-fill" id="rmsFill"></div>
+                <div class="rms-dot" id="rmsDot"></div>
+              </div>
+              <span class="rms-val" id="rmsVal">0.0%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Counter Telemetry + Roast Stream -->
+      <section class="col-right">
+        <!-- Acoustic Spike Telemetry (Cough Counter) Card -->
+        <div class="telemetry-card">
+          <div class="card-header">
+            <div class="telemetry-status">
+              <span class="pulse-dot red"></span>
+              <span class="telemetry-title">ACOUSTIC SPIKE TELEMETRY</span>
+            </div>
+          </div>
+
+          <div class="counter-display">
+            <div class="counter-number-row">
+              <span id="coughCounter" class="big-counter">0</span>
+              <span class="counter-unit">COUGHS</span>
+            </div>
+
+            <div class="tier-badge-container">
+              <div id="tierBadge" class="tier-pill tier-level-1">HEALTHY AMATEUR</div>
+              <div id="tierMalayalam" class="tier-malayalam">ചുമ തുടക്കക്കാരൻ</div>
+            </div>
+
+            <div class="progress-section">
+              <div class="progress-labels">
+                <span class="progress-label">PROGRESS</span>
+                <span id="nextTierText" class="progress-remaining">3 more to CHUMA ENTHUSIAST</span>
+              </div>
+              <div class="progress-track">
+                <div id="progressFill" class="progress-bar-fill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Biometric Roast Stream Card -->
+        <div class="roast-card">
+          <div class="card-header">
+            <div class="roast-status">
+              <span class="roast-flame">🌶</span>
+              <span class="roast-title">LIVE BIOMETRIC ROAST STREAM</span>
+            </div>
+            <div class="subtitle-badge">MALAYALAM + ENGLISH SUBTITLES</div>
+          </div>
+
+          <div class="roast-body">
+            <div class="roast-content" id="roastContainer">
+              <h2 id="roastMalayalam" class="roast-malayalam">"ചുമ തുടങ്ങിക്കോളൂ... സിസ്റ്റം റെഡിയാണ്!"</h2>
+              <p id="roastEnglish" class="roast-english">Start coughing whenever you are ready... the system is scanning.</p>
+            </div>
+
+            <div class="demo-controls-bar">
+              <div class="demo-hint">
+                <span class="bulb-icon">💡</span>
+                <span>DEMO TESTING CONTROLS (IN CASE OF SILENT ROOM)</span>
+              </div>
+              <button id="btnSimulateCough" class="btn-simulate">
+                + SIMULATE COUGH
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Session End / Official Chuma Evaluation Modal Dossier -->
+  <div id="dossierModal" class="modal-overlay hidden">
+    <div class="dossier-card">
+      <div class="dossier-header">
+        <div class="dossier-titles">
+          <div class="dossier-subtitle">CHUMMAPP BIO-ACOUSTIC DOSSIER</div>
+          <div class="dossier-main-title">
+            <span class="pulse-dot red"></span>
+            <span>Official Chuma Evaluation</span>
+          </div>
+        </div>
+        <div class="verified-badge">VERIFIED FUTILE</div>
+      </div>
+
+      <!-- 3 Metrics Cards Row -->
+      <div class="dossier-stats-grid">
+        <div class="stat-card">
+          <div class="stat-caption">TOTAL COUGHS RECORDED</div>
+          <div class="stat-number red-glow" id="modalTotalCoughs">0</div>
+          <div class="stat-sub">Acoustic transient spikes</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-caption">FINAL CHUMA LEVEL</div>
+          <div class="stat-number purple-glow" id="modalFinalLevel">CHUMA FINAL BOSS</div>
+          <div class="stat-sub malayalam-sub" id="modalFinalLevelMalayalam">അന്തിമ ചുമ ദൈവം</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-caption">SESSION DURATION</div>
+          <div class="stat-number white-text" id="modalDuration">0m 0s</div>
+          <div class="stat-sub">Active monitoring time</div>
+        </div>
+      </div>
+
+      <!-- Center Closing Roast Box -->
+      <div class="closing-roast-box">
+        <div class="closing-roast-tag">
+          <span>🔥</span> OFFICIAL CLOSING ROAST
+        </div>
+        <h2 class="closing-malayalam" id="modalClosingMalayalam">
+          "ചുമ ഫൈനൽ ബോസ്! Congratulations. You have achieved absolutely nothing, but ruined everyone's peace."
+        </h2>
+        <p class="closing-english" id="modalClosingEnglish">
+          CHUMA FINAL BOSS! Congratulations, you achieved absolutely nothing except disturbing everyone.
+        </p>
+      </div>
+
+      <!-- Modal Action Buttons -->
+      <div class="modal-actions-row">
+        <button id="btnRestartSession" class="btn-restart-glow">
+          <span class="btn-icon">🔄</span> TEST AGAIN / NEW SESSION
+        </button>
+        <button id="btnShareRoast" class="btn-share-roast">
+          <span class="btn-icon">📋</span> SHARE YOUR ROAST
+        </button>
+      </div>
+
+      <!-- Footer Disclaimer -->
+      <div class="dossier-footer">
+        CHUMMAPP v2.0 • INTENTIONALLY USELESS COMEDY SYSTEM • ZERO CLINICAL VALIDITY GUARANTEED
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
