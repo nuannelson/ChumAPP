@@ -1,0 +1,196 @@
+.camera-preview-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-width: 480px;
+  background: #0b0d14;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-hud);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* mirror preview */
+  filter: contrast(1.05) brightness(0.95);
+}
+
+/* Cosmetic High-tech HUD Overlay */
+.camera-hud-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px;
+}
+
+.hud-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.hud-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 51, 75, 0.4);
+  color: #ff94a2;
+}
+
+.hud-rec-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--accent-red);
+  border-radius: 50%;
+  animation: blinkSlow 1.2s infinite;
+}
+
+.hud-center-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160px;
+  height: 160px;
+  border: 1px dashed rgba(255, 51, 75, 0.4);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hud-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--accent-red);
+  border-style: solid;
+}
+
+.hud-corner.tl { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
+.hud-corner.tr { top: -2px; right: -2px; border-width: 2px 2px 0 0; }
+.hud-corner.bl { bottom: -2px; left: -2px; border-width: 0 0 2px 2px; }
+.hud-corner.br { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
+
+.reticle-crosshair {
+  width: 18px;
+  height: 18px;
+  position: relative;
+}
+
+.reticle-crosshair::before,
+.reticle-crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 51, 75, 0.7);
+}
+.reticle-crosshair::before {
+  top: 8px;
+  left: 0;
+  width: 18px;
+  height: 2px;
+}
+.reticle-crosshair::after {
+  top: 0;
+  left: 8px;
+  width: 2px;
+  height: 18px;
+}
+
+.reticle-label {
+  position: absolute;
+  bottom: -24px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: #ff94a2;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.hud-bottom-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Subtle scanning line effect */
+.camera-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 51, 75, 0.8), transparent);
+  box-shadow: 0 0 10px var(--accent-red);
+  opacity: 0.7;
+  animation: scanline 4s linear infinite;
+  pointer-events: none;
+}
+
+/* Placeholder state when camera is denied or not found */
+.camera-fallback-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  text-align: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 51, 75, 0.05) 0%, #0c0e15 80%);
+}
+
+.fallback-icon {
+  font-size: 2.2rem;
+  opacity: 0.85;
+}
+
+.fallback-title {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-red);
+  letter-spacing: 0.08em;
+}
+
+.fallback-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  max-width: 240px;
+  line-height: 1.4;
+}
+
+.fallback-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+}

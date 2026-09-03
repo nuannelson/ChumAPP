@@ -265,9 +265,12 @@ class CoughDetectorApp:
         self.cooldown_seconds = 1.5  # Debounce cooldown
         self.uploaded_audio = None
         self.is_playing_audio = False
+        self.selected_device_idx = None
+        self.input_device_map = {}
 
         self._init_styles()
         self._build_ui()
+        self._refresh_audio_devices()
 
         # Check model status
         if not self.engine.is_loaded:
@@ -401,7 +404,32 @@ class CoughDetectorApp:
             wraplength=300,
             justify="left"
         )
-        mic_desc.pack(anchor="w", pady=(0, 10))
+        mic_desc.pack(anchor="w", pady=(0, 8))
+
+        # Input device dropdown row
+        dev_row = tk.Frame(mic_card, bg="#1e1e2e")
+        dev_row.pack(fill="x", pady=(0, 10))
+
+        tk.Label(dev_row, text="Mic:", font=("Segoe UI", 9, "bold"), fg="#cdd6f4", bg="#1e1e2e").pack(side="left", padx=(0, 4))
+        self.device_var = tk.StringVar()
+        self.device_combo = ttk.Combobox(dev_row, textvariable=self.device_var, state="readonly", width=22)
+        self.device_combo.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        self.device_combo.bind("<<ComboboxSelected>>", self._on_device_selected)
+
+        btn_refresh_dev = tk.Button(
+            dev_row,
+            text="🔄",
+            font=("Segoe UI", 8, "bold"),
+            bg="#313244",
+            fg="#cdd6f4",
+            activebackground="#45475a",
+            relief="flat",
+            padx=5,
+            pady=1,
+            cursor="hand2",
+            command=self._refresh_audio_devices
+        )
+        btn_refresh_dev.pack(side="right")
 
         mic_btn_frame = tk.Frame(mic_card, bg="#1e1e2e")
         mic_btn_frame.pack(fill="x")
@@ -646,6 +674,37 @@ class CoughDetectorApp:
             for old in children[50:]:
                 self.tree.delete(old)
 
+    def _refresh_audio_devices(self):
+        try:
+            devices = sd.query_devices()
+            hostapis = sd.query_hostapis()
+            self.input_device_map = {}
+            display_list = ["Default System Device"]
+            self.input_device_map["Default System Device"] = None
+
+            for idx, dev in enumerate(devices):
+                if dev.get("max_input_channels", 0) > 0:
+                    api_idx = dev.get("hostapi", 0)
+                    api_name = hostapis[api_idx]["name"] if api_idx < len(hostapis) else ""
+                    name = f"[{idx}] {dev['name']} ({api_name})"
+                    display_list.append(name)
+                    self.input_device_map[name] = idx
+
+            self.device_combo["values"] = display_list
+            if display_list:
+                self.device_combo.current(0)
+                self.selected_device_idx = None
+        except Exception:
+            self.device_combo["values"] = ["Default System Device"]
+            self.device_combo.current(0)
+            self.selected_device_idx = None
+
+    def _on_device_selected(self, event=None):
+        selected_text = self.device_var.get()
+        self.selected_device_idx = self.input_device_map.get(selected_text, None)
+        dev_desc = selected_text if self.selected_device_idx is not None else "Default System Device"
+        self.status_msg.config(text=f"Selected microphone: {dev_desc}")
+
     # -------------------------------------------------------------------------
     # Microphone Streaming & Background Worker
     # -------------------------------------------------------------------------
@@ -703,7 +762,7 @@ class CoughDetectorApp:
         last_eval_time = 0.0
 
         try:
-            with sd.InputStream(samplerate=sr, channels=1, dtype="float32", blocksize=frame_samples) as stream:
+            with sd.InputStream(samplerate=sr, channels=1, dtype="float32", blocksize=frame_samples, device=self.selected_device_idx) as stream:
                 self.audio_stream = stream
                 while self.is_recording:
                     data, overflowed = stream.read(frame_samples)

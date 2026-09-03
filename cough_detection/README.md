@@ -158,12 +158,15 @@ py app.py
 
 ### UI Features & Walkthrough
 1. **Model Status Indicator**: Displays `MODEL LOADED` in green once `models/cough_model.pth` is detected.
-2. **Live Continuous Microphone Test**:
+2. **Input Device Selection**:
+   - Select your microphone from the **Mic:** dropdown (supports Bluetooth headsets, built-in mic arrays, USB mics, etc.).
+   - Click the **🔄** button to refresh available audio devices at any time.
+3. **Live Continuous Microphone Test**:
    - Click **▶ Start Microphone Test**.
    - Speak, type, or make environmental sounds — observe the confidence bar remaining low with `✔ NO COUGH DETECTED`.
    - Cough near the microphone — immediately triggers `⚠ COUGH DETECTED` with high confidence.
    - Click **⏹ Stop** when finished.
-3. **Debounce / Cooldown Mechanism**:
+4. **Debounce / Cooldown Mechanism**:
    - A single cough episode often lasts 0.5–1.0s and may produce multiple acoustic peaks.
    - The built-in **1.5s debounce cooldown** ensures that one coughing fit registers as a single event in the log rather than triggering 10 duplicate alerts.
 4. **Audio File Upload & Playback**:

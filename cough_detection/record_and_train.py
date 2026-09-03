@@ -65,9 +65,12 @@ class RecordAndTrainApp:
         self.last_recorded_path = None
         self.msg_queue = queue.Queue()
         self.cm_photo = None  # To retain reference to Tk image
+        self.selected_device_idx = None
+        self.input_device_map = {}
 
         self._build_ui()
         self._refresh_dataset_counts()
+        self._refresh_audio_devices()
 
         # Start background queue polling
         self.root.after(60, self._process_queue)
@@ -186,6 +189,31 @@ class RecordAndTrainApp:
         )
         record_card.pack(fill="x", pady=(0, 10))
 
+        # Input device selector row
+        device_row = tk.Frame(record_card, bg="#1e1e2e")
+        device_row.pack(fill="x", pady=(0, 8))
+
+        tk.Label(device_row, text="Input Device:", font=("Segoe UI", 9, "bold"), fg="#cdd6f4", bg="#1e1e2e").pack(side="left", padx=(0, 8))
+        self.device_var = tk.StringVar()
+        self.device_combo = ttk.Combobox(device_row, textvariable=self.device_var, state="readonly", width=44)
+        self.device_combo.pack(side="left", padx=(0, 8), fill="x", expand=True)
+        self.device_combo.bind("<<ComboboxSelected>>", self._on_device_selected)
+
+        btn_refresh_dev = tk.Button(
+            device_row,
+            text="🔄 Refresh Devices",
+            font=("Segoe UI", 8, "bold"),
+            bg="#313244",
+            fg="#cdd6f4",
+            activebackground="#45475a",
+            relief="flat",
+            padx=8,
+            pady=2,
+            cursor="hand2",
+            command=self._refresh_audio_devices
+        )
+        btn_refresh_dev.pack(side="left")
+
         # Class selector radiobuttons
         class_frame = tk.Frame(record_card, bg="#1e1e2e")
         class_frame.pack(fill="x", pady=(0, 8))
@@ -271,9 +299,25 @@ class RecordAndTrainApp:
         )
         self.btn_listen.pack(side="left", padx=(0, 8))
 
+        self.btn_test_ai = tk.Button(
+            action_row,
+            text="🤖 Test with AI Model",
+            font=("Segoe UI", 9, "bold"),
+            bg="#cba6f7",
+            fg="#11111b",
+            activebackground="#f5c2e7",
+            cursor="hand2",
+            relief="flat",
+            state="disabled",
+            padx=10,
+            pady=6,
+            command=self.test_last_recording_with_ai
+        )
+        self.btn_test_ai.pack(side="left", padx=(0, 8))
+
         self.btn_discard = tk.Button(
             action_row,
-            text="🗑️ Discard Last",
+            text="🗑️ Discard",
             font=("Segoe UI", 9, "bold"),
             bg="#45475a",
             fg="#cdd6f4",
@@ -438,6 +482,37 @@ class RecordAndTrainApp:
         except Exception as e:
             messagebox.showinfo("Dataset Path", f"Dataset directory:\n{self.dataset_dir}")
 
+    def _refresh_audio_devices(self):
+        try:
+            devices = sd.query_devices()
+            hostapis = sd.query_hostapis()
+            self.input_device_map = {}
+            display_list = ["Default System Input Device"]
+            self.input_device_map["Default System Input Device"] = None
+
+            for idx, dev in enumerate(devices):
+                if dev.get("max_input_channels", 0) > 0:
+                    api_idx = dev.get("hostapi", 0)
+                    api_name = hostapis[api_idx]["name"] if api_idx < len(hostapis) else ""
+                    name = f"[{idx}] {dev['name']} ({api_name})"
+                    display_list.append(name)
+                    self.input_device_map[name] = idx
+
+            self.device_combo["values"] = display_list
+            if display_list:
+                self.device_combo.current(0)
+                self.selected_device_idx = None
+        except Exception as e:
+            self.device_combo["values"] = ["Default System Input Device"]
+            self.device_combo.current(0)
+            self.selected_device_idx = None
+
+    def _on_device_selected(self, event=None):
+        selected_text = self.device_var.get()
+        self.selected_device_idx = self.input_device_map.get(selected_text, None)
+        dev_desc = selected_text if self.selected_device_idx is not None else "Default System Input Device"
+        self.status_lbl.config(text=f"Selected input device: {dev_desc}")
+
     # -------------------------------------------------------------------------
     # Recording Logic
     # -------------------------------------------------------------------------
@@ -470,7 +545,7 @@ class RecordAndTrainApp:
         def _record_worker():
             try:
                 num_frames = int(dur * SAMPLE_RATE)
-                audio = sd.rec(num_frames, samplerate=SAMPLE_RATE, channels=1, dtype="float32")
+                audio = sd.rec(num_frames, samplerate=SAMPLE_RATE, channels=1, dtype="float32", device=self.selected_device_idx)
                 sd.wait()
                 audio = audio.flatten()
 
@@ -501,12 +576,32 @@ class RecordAndTrainApp:
                 os.remove(self.last_recorded_path)
                 self.record_status_lbl.config(text=f"Discarded {os.path.basename(self.last_recorded_path)}.", fg="#a6adc8")
                 self.btn_listen.config(state="disabled")
+                self.btn_test_ai.config(state="disabled")
                 self.btn_discard.config(state="disabled")
                 self.last_recorded_path = None
                 self.last_recorded_audio = None
                 self._refresh_dataset_counts()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to delete file:\n{e}")
+
+    def test_last_recording_with_ai(self):
+        if not self.last_recorded_path or not os.path.exists(self.last_recorded_path):
+            messagebox.showinfo("Test", "No recorded audio sample found.")
+            return
+
+        from app import AudioInferenceEngine
+        engine = AudioInferenceEngine(models_dir=self.models_dir)
+        if not engine.is_loaded:
+            messagebox.showwarning("Model Not Loaded", "Trained model not found in models/. Please train the model first!")
+            return
+
+        label, prob, dur, _ = engine.predict_file(self.last_recorded_path)
+        color = "#f38ba8" if label == "COUGH DETECTED" else "#a6e3a1"
+        self.record_status_lbl.config(
+            text=f"AI Prediction: {label} (Cough Probability: {prob*100:.1f}%)",
+            fg=color
+        )
+        self.status_lbl.config(text=f"AI evaluated {os.path.basename(self.last_recorded_path)}: {label} ({prob*100:.1f}%)")
 
     # -------------------------------------------------------------------------
     # Model Training Logic
@@ -625,6 +720,7 @@ class RecordAndTrainApp:
                     self.last_recorded_path = save_path
                     self.btn_record.config(state="normal", bg="#f38ba8")
                     self.btn_listen.config(state="normal")
+                    self.btn_test_ai.config(state="normal")
                     self.btn_discard.config(state="normal")
                     self.record_status_lbl.config(
                         text=f"✔ Saved: {filename} to {target_class}/",
