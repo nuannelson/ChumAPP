@@ -36,6 +36,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from flask import Flask, request, jsonify, send_from_directory
+try:
+    from flask_cors import CORS
+    CORS_AVAILABLE = True
+except ImportError:
+    CORS_AVAILABLE = False
 
 
 # -----------------------------------------------------------------------------
@@ -248,6 +253,8 @@ MODELS_DIR = os.path.join(BASE_DIR, "models")
 engine = AudioInferenceEngine(models_dir=MODELS_DIR)
 
 flask_app = Flask(__name__, static_folder=STATIC_DIR)
+if CORS_AVAILABLE:
+    CORS(flask_app)
 
 
 @flask_app.route("/")
@@ -298,20 +305,22 @@ def open_browser(port: int):
 
 
 def main():
+    default_port = int(os.environ.get("PORT", 5000))
+    is_cloud = "PORT" in os.environ or "RENDER" in os.environ
     parser = argparse.ArgumentParser(description="ChummAPP: Bio-Acoustic Cough Recognition & Savage Roast System")
-    parser.add_argument("--port", type=int, default=5000, help="Port to run web server on (default: 5000)")
-    parser.add_argument("--no_browser", action="store_true", help="Do not automatically open the web browser")
+    parser.add_argument("--port", type=int, default=default_port, help=f"Port to run web server on (default: {default_port})")
+    parser.add_argument("--no_browser", action="store_true", default=is_cloud, help="Do not automatically open the web browser")
     args = parser.parse_args()
 
     print("=" * 70)
     print("      CHUMMAPP — BIO-ACOUSTIC DOSSIER & SAVAGE ROAST ENGINE")
     print("=" * 70)
     print(f"Model Loaded: {'YES (CoughCNN Ready)' if engine.is_loaded else 'NO (Run train.py first)'}")
-    print(f"Server starting on: http://127.0.0.1:{args.port}")
+    print(f"Server starting on: http://0.0.0.0:{args.port}")
     print("Press Ctrl+C to stop the server.")
     print("=" * 70)
 
-    if not args.no_browser:
+    if not args.no_browser and not is_cloud:
         threading.Thread(target=open_browser, args=(args.port,), daemon=True).start()
 
     flask_app.run(host="0.0.0.0", port=args.port, debug=False)
