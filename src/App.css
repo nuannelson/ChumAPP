@@ -1,3 +1,10 @@
+<<<<<<< HEAD
+.app-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+=======
 .counter {
   font-size: 16px;
   padding: 5px 10px;
@@ -181,4 +188,5 @@
     right: 0;
     border-right-color: var(--border);
   }
+>>>>>>> b70dfce39d9d6fdb4fad12552d1882e6f0f22922
 }

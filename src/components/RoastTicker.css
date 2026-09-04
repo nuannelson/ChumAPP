@@ -1,0 +1,74 @@
+.roast-ticker-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-hud);
+  backdrop-filter: blur(14px);
+  width: 100%;
+}
+
+.roast-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 8px;
+}
+
+.roast-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: #ff94a2;
+}
+
+.roast-chili-icon {
+  font-size: 0.9rem;
+}
+
+.roast-language-tag {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.roast-content-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0;
+  min-height: 80px;
+  justify-content: center;
+}
+
+.roast-malayalam-quote {
+  font-family: var(--font-malayalam);
+  font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+  font-weight: 700;
+  line-height: 1.5;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.roast-malayalam-quote.fade-in {
+  animation: bounceUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.roast-english-sub {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.4;
+}

@@ -1,5 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<<<<<<< HEAD
+  <defs>
+    <radialGradient id="grad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff334b" />
+      <stop offset="70%" stop-color="#cc0022" />
+      <stop offset="100%" stop-color="#660011" />
+    </radialGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <circle cx="50" cy="50" r="40" fill="url(#grad)" filter="url(#glow)" />
+  <circle cx="50" cy="50" r="26" fill="none" stroke="#ffffff" stroke-width="4" stroke-opacity="0.9" />
+=======
   <circle cx="50" cy="50" r="46" fill="#090b0e" stroke="#ff2d55" stroke-width="4" />
   <circle cx="50" cy="50" r="28" fill="#ff2d55" />
+>>>>>>> b70dfce39d9d6fdb4fad12552d1882e6f0f22922
   <circle cx="50" cy="50" r="14" fill="#ffffff" />
 </svg>

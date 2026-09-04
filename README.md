@@ -1,3 +1,21 @@
+<<<<<<< HEAD
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the Oxlint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+=======
 # ChumAPP 🎯
 
 ## Basic Details
@@ -8,8 +26,8 @@
 
 ### Team Members
 
-* **Bennet Chacko** - MITS
-* **Nuan Nelson** - MITS
+* **Bennet Chacko** - Muthoot Institute of Technology ans Science, Varikoli
+* **Nuan Nelson** - Muthoot Institute of Technology ans Science, Varikoli
 
 ### Project Description
 
@@ -95,20 +113,7 @@ Because apparently, even coughing needs advanced technology.
 * Vite
 * Browser Microphone API
 * Browser Camera API
-
-#### For Hardware
-
-No dedicated hardware is required.
-
-The project uses:
-
-* Laptop/desktop computer
-* Built-in or external microphone
-* Built-in or external webcam
-* Modern web browser
-
 ---
-
 ## Implementation
 
 ### Software Architecture
@@ -241,16 +246,20 @@ When prompted, allow access to:
 
 ### Screenshots
 
-![Landing Page](Add screenshot of landing page here)
+![Screenshot 1](./screenshots/1.png)
+![Screenshot 2](./screenshots/2.png)
 
 *The ChumAPP landing page introduces the completely unnecessary purpose of the application and allows the user to start a cough detection session.*
 
-![Cough Detection](Add screenshot of cough detection screen here)
+![Screenshot 3](./screenshots/3.png)
+
+![Screenshot 4](./screenshots/4.png)
 
 *The live detection interface displays the camera preview, audio visualization and current cough count.*
 
-![Final Report](Add screenshot of final report here)
+![Screenshot 5](./screenshots/5.png)
 
+![Screenshot 6](./screenshots/6.png)
 *The final report displays the total number of detected coughs, Chuma Level and entertaining roast comments.*
 
 ---
@@ -308,3 +317,4 @@ Made with ❤️ at TinkerHub Useless Projects
 ![Static Badge](https://img.shields.io/badge/TinkerHub-24?color=%23000000\&link=https%3A%2F%2Fwww.tinkerhub.org%2F)
 
 ![Static Badge](https://img.shields.io/badge/UselessProjects--26-26?link=https%3A%2F%2Ftinkerhub.org%2Fevents%2F1M8ORET9A1%2Fuseless-projects-3.0)
+>>>>>>> b70dfce39d9d6fdb4fad12552d1882e6f0f22922
