@@ -8,8 +8,8 @@
 
 ### Team Members
 
-* **Bennet Chacko** - MITS
-* **Nuan Nelson** - MITS
+* **Bennet Chacko** - Muthoot Institute of Technology ans Science, Varikoli
+* **Nuan Nelson** - Muthoot Institute of Technology ans Science, Varikoli
 
 ### Project Description
 
@@ -95,20 +95,7 @@ Because apparently, even coughing needs advanced technology.
 * Vite
 * Browser Microphone API
 * Browser Camera API
-
-#### For Hardware
-
-No dedicated hardware is required.
-
-The project uses:
-
-* Laptop/desktop computer
-* Built-in or external microphone
-* Built-in or external webcam
-* Modern web browser
-
 ---
-
 ## Implementation
 
 ### Software Architecture
@@ -241,16 +228,20 @@ When prompted, allow access to:
 
 ### Screenshots
 
-![Landing Page](Add screenshot of landing page here)
+![Screenshot 1](./screenshots/1.png)
+![Screenshot 2](./screenshots/2.png)
 
 *The ChumAPP landing page introduces the completely unnecessary purpose of the application and allows the user to start a cough detection session.*
 
-![Cough Detection](Add screenshot of cough detection screen here)
+![Screenshot 3](./screenshots/3.png)
+
+![Screenshot 4](./screenshots/4.png)
 
 *The live detection interface displays the camera preview, audio visualization and current cough count.*
 
-![Final Report](Add screenshot of final report here)
+![Screenshot 5](./screenshots/5.png)
 
+![Screenshot 6](./screenshots/6.png)
 *The final report displays the total number of detected coughs, Chuma Level and entertaining roast comments.*
 
 ---
