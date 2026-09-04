@@ -1,0 +1,90 @@
+.audio-visualizer-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  backdrop-filter: blur(14px);
+}
+
+.visualizer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.visualizer-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.visualizer-wave-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+}
+
+.visualizer-wave-dot.hot {
+  background: var(--accent-red);
+  box-shadow: 0 0 10px var(--accent-red);
+}
+
+.visualizer-canvas {
+  width: 100%;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  background: #080a10;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: block;
+}
+
+/* Real-time RMS Level meter */
+.rms-meter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.rms-meter-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.rms-meter-threshold-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #fbbf24;
+  z-index: 2;
+}
+
+.rms-meter-bar {
+  height: 100%;
+  background: #34d399;
+  border-radius: var(--radius-full);
+  transition: width 0.08s ease-out, background-color 0.1s ease;
+}
+
+.rms-meter-bar.spike {
+  background: var(--accent-red);
+  box-shadow: 0 0 8px var(--accent-red);
+}

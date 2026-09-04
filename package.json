@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "name": "chumaa",
+=======
+  "name": "chumapp",
+>>>>>>> b70dfce39d9d6fdb4fad12552d1882e6f0f22922
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,9 +11,18 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+<<<<<<< HEAD
     "preview": "vite preview"
   },
   "dependencies": {
+=======
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "lucide-react": "^1.39.0",
+>>>>>>> b70dfce39d9d6fdb4fad12552d1882e6f0f22922
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
@@ -17,6 +30,10 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
+<<<<<<< HEAD
+=======
+    "gh-pages": "^6.3.0",
+>>>>>>> b70dfce39d9d6fdb4fad12552d1882e6f0f22922
     "oxlint": "^1.79.0",
     "vite": "^8.2.2"
   }
